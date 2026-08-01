@@ -18,7 +18,8 @@ namespace fs = std::filesystem;
 
 /**
  * This structure associates a file path to the time of its last backup for the system to know
- * whether the file must be copied again or not
+ * whether the file must be copied again or not. Objects of this class are stored and loaded from 
+ * the file_trackings.ftk binary file.
  * */
 struct FileBackupStatus
 {
@@ -77,7 +78,7 @@ struct FileBackupStatus
 
 /**
  * This class handles the read stream of the configuration file, it is used by the Backup Manager in its
- * inicialization to know where and how to make the backup
+ * inicialization to know where and how to make the backup backup_config.cfg
  * */
 class ConfigFileReader
 {
@@ -264,8 +265,11 @@ public:
         // Trying to read from the configuration file
         ConfigFileReader confg_stream;
 
-        if(!confg_stream.open())
+        if(!confg_stream.open()) {
+            std::cout << rang::fg::magenta << "[!] The configuration file '" << CONFIG_FILE_PATH << "' was not found or couldn't be opened.\n";
+            std::cout << rang::fg::reset;
             return;
+        }
 
         std::string buffer = confg_stream.next_word();
 
@@ -469,6 +473,8 @@ int main()
     bkp_man.make_backup();
 
     std::cout << "\nBackup done :)\n\n";
+
+    std::system("pause");
 
     return 0;
 }
