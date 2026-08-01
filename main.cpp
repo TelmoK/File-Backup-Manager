@@ -345,23 +345,29 @@ public:
 
         // Look for the changes in the key directories and copy them to the backup directory
         for(const std::string& origin : backuped_directories)
-            handle_directory_changes(origin, tree_weeks_ago_tm);
+            handle_directory_changes_rec(origin, origin, tree_weeks_ago_tm);
 
         save_tracked_files(); // Save the metadata from the tracked files after the backup
     }
 
     // Scans and copies modified files into the especified directory where the backup is made
-    void handle_directory_changes(const fs::path& origin_dir, fs::file_time_type default_track_time) 
+    void handle_directory_changes_rec(const fs::path& origin_dir, const fs::path& current_dir, fs::file_time_type default_track_time) 
     {    
-        if (!fs::exists(origin_dir) || !fs::is_directory(origin_dir))
+        if (!fs::exists(current_dir) || !fs::is_directory(current_dir))
             return;
 
         // Check the directory recursively as the modification time of the directory is independent from the
         // internal modification of a file
-        for (const fs::directory_entry& entry : fs::recursive_directory_iterator(origin_dir)) 
+        for (const fs::directory_entry& entry : fs::directory_iterator(current_dir)) 
         {
+            // Process sub-directory content if it is not a lymbolic link and it is not in the ignored directory list
+            if(fs::is_directory(entry.path()) && !fs::is_symlink(entry.path()) &&
+                ignored_directories.find(entry.path().string()) == ignored_directories.end()) 
+            {
+                handle_directory_changes_rec(origin_dir, entry.path(), default_track_time); // Recursive directory search
+            }
             // Process only the changes in files ignoring the useless files such as temporal ones (filtering by extension)
-            if (fs::is_regular_file(entry.path()) && 
+            else if (fs::is_regular_file(entry.path()) && 
                 ignored_extensions.find(entry.path().extension().string()) == ignored_extensions.end()) 
             {
                 auto tracked_file_it = tracked_files.find(entry.path().string());
